@@ -130,6 +130,29 @@ fn test_post() {
 }
 
 #[test]
+fn custom_content_length_header() {
+    let server = server::http(move |req| async move {
+        assert_eq!(req.method(), "POST");
+        assert_eq!(req.headers()[CONTENT_LENGTH], "2");
+
+        let data = req.into_body().collect().await.unwrap().to_bytes();
+        assert_eq!(&*data, b"Hello");
+
+        http::Response::default()
+    });
+
+    let url = format!("http://{}/custom", server.addr());
+    let res = reqwest::blocking::Client::new()
+        .post(&url)
+        .body("Hello")
+        .header(reqwest::header::CONTENT_LENGTH, "2")
+        .send()
+        .unwrap();
+
+    assert_eq!(res.status(), reqwest::StatusCode::OK);
+}
+
+#[test]
 fn test_post_form() {
     let server = server::http(move |req| async move {
         assert_eq!(req.method(), "POST");
