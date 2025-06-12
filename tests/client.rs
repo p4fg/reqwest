@@ -208,6 +208,40 @@ async fn body_pipe_response() {
 }
 
 #[tokio::test]
+async fn custom_content_length_header() {
+    use http_body_util::BodyExt;
+
+    let server = server::http(move |req| async move {
+        assert_eq!(req.method(), "POST");
+        assert_eq!(req.headers()[CONTENT_LENGTH], "2");
+
+        let full: Vec<u8> = req
+            .into_body()
+            .collect()
+            .await
+            .expect("must succeed")
+            .to_bytes()
+            .to_vec();
+
+        assert_eq!(full, b"Hello");
+
+        http::Response::default()
+    });
+
+    let client = Client::new();
+    let url = format!("http://{}/custom", server.addr());
+    let res = client
+        .post(&url)
+        .body("Hello")
+        .header(reqwest::header::CONTENT_LENGTH, "2")
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(res.status(), reqwest::StatusCode::OK);
+}
+
+#[tokio::test]
 async fn overridden_dns_resolution_with_gai() {
     let _ = env_logger::builder().is_test(true).try_init();
     let server = server::http(move |_req| async { http::Response::new("Hello".into()) });

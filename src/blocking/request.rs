@@ -142,7 +142,9 @@ impl Request {
         let body = self.body.and_then(|body| {
             let (tx, body, len) = body.into_async();
             if let Some(len) = len {
-                req_async.headers_mut().insert(CONTENT_LENGTH, len.into());
+                if !req_async.headers().contains_key(CONTENT_LENGTH) {
+                    req_async.headers_mut().insert(CONTENT_LENGTH, len.into());
+                }
             }
             *req_async.body_mut() = Some(body);
             tx
